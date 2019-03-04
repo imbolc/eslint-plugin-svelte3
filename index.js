@@ -173,7 +173,11 @@ const preprocess = text => {
 	// build a string that we can send along to ESLint to get the remaining messages
 
 	// include declarations of all injected identifiers
-	transformedCode = injectedVars.length ? `let ${injectedVars.map(v => v.name).join(',')}; // eslint-disable-line\n` : '';
+	transformedCode = '/* eslint-disable */';
+	if (injectedVars.length) {
+		transformedCode += `/* pretttier-ignore */let ${injectedVars.map(v => v.name).join(',')};`;
+	}
+	transformedCode += '/* prettier-ignore */{}/* eslint-enable */';
 
 	// get moduleInfo/instanceInfo and include the processed scripts in str
 	const getInfo = script => {
@@ -187,17 +191,20 @@ const preprocess = text => {
 		return info;
 	};
 	moduleInfo = ast.module && getInfo(ast.module);
-	transformedCode += '\n';
+	if (ast.module && ast.instance) {
+		transformedCode += '/* eslint-disable *//* prettier-ignore */{}/* eslint-enable */';
+	}
 	instanceInfo = ast.instance && getInfo(ast.instance);
+	transformedCode += '/* eslint-disable */';
 
 	// no-unused-vars: create references to all identifiers referred to by the template
 	if (referencedVars.length) {
-		transformedCode += `\n{${referencedVars.map(v => v.name).join(';')}} // eslint-disable-line`;
+		transformedCode += `/* prettier-ignore */{${referencedVars.map(v => v.name).join(';')}}`;
 	}
 
 	// prefer-const: create reassignments for all vars reassigned in component and for all exports
 	if (reassignedVars.length) {
-		transformedCode += `\n{${reassignedVars.map(v => v.name + '=0').join(';')}} // eslint-disable-line`;
+		transformedCode += `/* prettier-ignore */{${reassignedVars.map(v => v.name + '=0').join(';')}}`;
 	}
 
 	// return processed string
